@@ -1,5 +1,5 @@
 # T-chat
-T-chat is a end to end encrypted chat, supporting multiple clients and chat history, using socat's openssl features
+T-chat is a end to end encrypted chat, supporting multiple clients and chat history, using socat's openssl features written entirely in bash.
 
 Dependencies:
 -
