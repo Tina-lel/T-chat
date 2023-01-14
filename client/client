@@ -1,0 +1,97 @@
+#!/bin/bash
+export DIRMAIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
+source $DIRMAIN/config
+
+#colurs xd
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+mkdir -p $DIRMAIN/ssl
+
+clear
+
+echo -e "T-chat [CLIENT] (type \"help\" for a list of commands)"
+
+while :
+do
+	echo -e "${GREEN}\u2500\u2500input\u2500\u2500${NC}"
+	read -r -e MAIN
+
+	case $MAIN in
+		help)
+			echo -e "\u2500\u2500list of cmd's\u2500\u2500"
+			echo -e "help: this message"
+			echo -e "connect: connects you to the server"
+			echo -e "gen: generate SSL certificate"
+			echo -e "exit: exit the script"
+			;;
+		connect)
+			if [[ ! -f "$DIRMAIN/ssl/client.crt" ]];
+			then
+				echo -e "${RED}[ERROR]${NC} please run \"gen\" once"
+			else
+				if [[ ! -f "$DIRMAIN/ssl/$HOST.crt" ]];
+				then
+					echo -e "${RED}[ERROR]${NC} no ssl certificate found"
+					echo -e "please copy the server certificate (found on the server your trying to connect to) into the $DIRMAIN/ssl folder and name it $HOST.crt (this changes based on host name)"
+				else
+					export MSG=""
+					mkdir -p $DIRMAIN/.tmp
+					echo -e "connecting..."
+
+					while [[ $MSG != "!back" ]];
+					do
+						watch -t -n 1.5 "socat openssl-connect:$HOST:$PORT,cert=$DIRMAIN/ssl/client.pem,cafile=$DIRMAIN/ssl/$HOST.crt - | tail -n $(($LINES - 0))"
+						reset > /dev/null 2>&1
+						clear
+
+						while :
+						do
+							read -r -e MSG
+
+							case $MSG in
+								!help)
+									echo -e "list of msg commands:"
+									echo -e "!help = this message"
+									echo -e "!exit = exit the chat"
+									echo -e "!back = disconnect"
+									;;
+								!exit)
+									exit
+									;;
+								!back)
+									break
+									;;
+								*)
+									date "+%T | %d.%m.%Y" >> $DIRMAIN/.tmp/tmp
+									echo -n -e "$NAME: " >> $DIRMAIN/.tmp/tmp
+									echo -e "$MSG" >> $DIRMAIN/.tmp/tmp
+									echo -e "------------" >> $DIRMAIN/.tmp/tmp
+									socat -u FILE:$DIRMAIN/.tmp/tmp openssl-connect:$HOST:$IPORT,cert=$DIRMAIN/ssl/client.pem,cafile=$DIRMAIN/ssl/$HOST.crt
+									rm -f $DIRMAIN/.tmp/tmp
+									clear
+									break
+									;;
+							esac
+						done
+					done
+				fi
+			fi
+			;;
+		gen)
+			echo -e "generating files..."
+			FILENAME=$DIRMAIN/ssl/client
+			openssl genrsa -out $FILENAME.key 2048
+			openssl req -new -key $FILENAME.key -x509 -days 3653 -out $FILENAME.crt
+			cat $FILENAME.key $FILENAME.crt >$FILENAME.pem
+			echo -e "\nfiles generated"
+			;;
+		exit)
+			exit
+			;;
+		*)
+			echo -e "unknown command"
+			;;
+	esac
+done
