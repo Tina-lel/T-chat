@@ -1,0 +1,81 @@
+#!/bin/bash
+export DIRMAIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
+source $DIRMAIN/config
+
+#colurs xd
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+clear
+
+echo -e "T-chat [SERVER] (type \"help\" for a list of commands)"
+
+while :
+do
+	echo -e "${GREEN}\u2500\u2500input\u2500\u2500${NC}"
+	read -r -e MAIN
+
+	case $MAIN in
+		help)
+			echo -e "\u2500\u2500list of cmd's\u2500\u2500"
+			echo -e "help: this message"
+			echo -e "start: start the server"
+			echo -e "stop: kill the server"
+			echo -e "gen: generate SSL files"
+			echo -e "exit: exit the script"
+			;;
+		gen)
+			echo -e "generating files..."
+			mkdir -p $DIRMAIN/ssl
+			FILENAME=$DIRMAIN/ssl/server
+			openssl genrsa -out $FILENAME.key 2048
+			echo -e "\n!!!!!!!!!!!!\n"
+			echo -e "when asked for a \"common name\" you must enter your servers hostname"
+			echo -e "\n!!!!!!!!!!!!\n"
+			openssl req -new -key $FILENAME.key -x509 -days 3653 -out $FILENAME.crt
+			cat $FILENAME.key $FILENAME.crt >$FILENAME.pem
+			echo -e "\nfiles generated"
+			;;
+		start)
+			if [[ -f $DIRMAIN/.lock ]];
+			then
+				echo -e "${RED}[ERROR]${NC} lock file exists in $DIRMAIN"
+				echo -e "another instance may be running, if not feel free to delete $DIRMAIN/.lock"
+			else
+				if [[ ! -d "$DIRMAIN/ssl" ]];
+				then
+					echo -e "${RED}[ERROR]${NC} please run \"gen\" first"
+				else
+					echo -e "starting the server..."
+					mkdir -p $DIRMAIN/chat
+					mkdir -p $DIRMAIN/.tmp
+					touch $DIRMAIN/chat/main
+					#output
+					socat openssl-listen:$PORT,fork,reuseaddr,verify=0,cert=$DIRMAIN/ssl/server.pem open:"$DIRMAIN/chat/main" &
+					#input
+					while :
+					do
+						socat -u openssl-listen:$IPORT,reuseaddr,verify=0,cert=$DIRMAIN/ssl/server.pem open:"$DIRMAIN/.tmp/tmp",creat || break
+						cat $DIRMAIN/.tmp/tmp >> $DIRMAIN/chat/main
+						rm -f $DIRMAIN/.tmp/tmp
+					done &
+					touch $DIRMAIN/.lock
+				fi
+			fi
+			;;
+		stop)
+			echo -e "killing the server..."
+			killall "socat" > /dev/null 2>&1
+			rm -f $DIRMAIN/.lock
+			;;
+		exit)
+			killall "socat" > /dev/null 2>&1
+			rm -rf $DIRMAIN/.lock
+			exit
+			;;
+		*)
+			echo -e "unknown command"
+			;;
+	esac
+done
