@@ -58,9 +58,15 @@ open up "config" in a text editor and change the "NAME" var. next edit the "HOST
 
 see "Commands" for a list of valid commands
 
-#### acquiring the servers SSL certificate and connecting to the server:
+#### acquiring the servers SSL certificate, generating client ones and connecting to the server:
 
-copy the servers SSL certificate (found in <script location>/ssl/server.crt on the server side) to the client, move it to <script location>/ssl/, and rename it to the same thing you entered in the $HOST variable in the client config just with a .crt at the end
+```
+gen
+```
+
+this generates the clients ssl certificate
+
+next, copy the servers SSL certificate (found in <script location>/ssl/server.crt on the server side) to the client, move it to <script location>/ssl/, and rename it to the same thing you entered in the $HOST variable in the client config just with a .crt at the end
 
 then, on the client, run:
 
@@ -91,3 +97,7 @@ exit: exit the script
 help: this message
 
 connect: connects you to the server
+
+gen: generate SSL files
+
+exit: exit the script
